@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Asset Portal | Smart Monitoring Node</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/5.7.2/ethers.umd.min.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;600;800&family=JetBrains+Mono:wght@400;700&display=swap');
+
+        :root {
+            --primary: #06b6d4;
+            --secondary: #ffffff; 
+            --accent: #8b5cf6;
+            --danger: #f43f5e;
+            --success: #10b981;
+            --bg-deep: #020617;
+            
+            /* Professional Decent Architectural Palette */
+            --house-roof: #334155; /* Muted Slate */
+            --house-body: #f8fafc; /* Clean Off-White */
+            --house-door: #451a03; /* Deep Wood/Mahogany */
+            --house-foundation: #0f172a;
+            --house-chimney: #1e293b;
+            --house-window-frame: #475569;
+        }
+
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-color: var(--bg-deep);
+            color: #f8fafc;
+            min-height: 100vh;
+            overflow-y: auto;
+            background-image: 
+                radial-gradient(circle at 50% -20%, rgba(6, 182, 212, 0.15) 0%, transparent 50%),
+                radial-gradient(circle at 100% 100%, rgba(255, 255, 255, 0.02) 0%, transparent 40%);
+        }
+
+        .mono { font-family: 'JetBrains Mono', monospace; }
+
+        .glass {
+            background: rgba(15, 23, 42, 0.6);
+            backdrop-filter: blur(40px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.8);
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Global Tab/Card Glow Effect */
+        .dashboard-card {
+            height: 100%;
+            padding: 2.5rem;
+            border-radius: 2.5rem;
+            transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 0 40px rgba(6, 182, 212, 0.15);
+            border: 1px solid rgba(6, 182, 212, 0.2);
+            background: rgba(15, 23, 42, 0.4);
+        }
+
+        .status-tag {
+            font-size: 0.65rem;
+            font-weight: 900;
+            text-transform: uppercase;
+            letter-spacing: 0.2em;
+            color: #94a3b8;
+        }
+
+        .btn-action {
+            background: linear-gradient(135deg, var(--primary) 0%, #6366f1 100%);
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            text-transform: uppercase;
+            letter-spacing: 0.15em;
+            font-weight: 800;
+        }
+
+        .btn-action:hover:not(:disabled) {
+            transform: translateY(-3px);
+            box-shadow: 0 15px 30px -5px rgba(6, 182, 212, 0.4);
+            filter: brightness(1.1);
+        }
+
+        /* Enhanced House Glow */
+        @keyframes intense-house-glow {
+            0%, 100% { filter: drop-shadow(0 0 5px rgba(6, 182, 212, 0.2)) drop-shadow(0 0 15px rgba(0,0,0,0.4)); }
+            50% { filter: drop-shadow(0 0 20px rgba(6, 182, 212, 0.5)) drop-shadow(0 0 25px rgba(0,0,0,0.5)); }
+        }
+
+        .house-svg-container {
+            width: 100%;
+            max-width: 280px;
+            height: auto;
+            margin-bottom: 2.5rem;
+            animation: intense-house-glow 4s infinite ease-in-out;
+        }
+
+        .shining-border {
+            stroke: rgba(0, 0, 0, 0.1);
+            stroke-width: 0.5;
+            animation: elegant-glow 4s infinite ease-in-out;
+        }
+
+        @keyframes elegant-glow {
+            0%, 100% { filter: drop-shadow(0 0 2px rgba(255,255,255,0.05)); }
+            50% { filter: drop-shadow(0 0 10px rgba(255,255,255,0.2)); }
+        }
+
+        .status-button-core {
+            background: #ffffff; 
+            border: 1px solid rgba(0,0,0,0.1);
+            width: 100%;
+            max-width: 260px; 
+            padding: 14px 20px;
+            border-radius: 12px;
+            color: #0f172a;
+            font-weight: 800;
+            font-size: 1.1rem;
+            letter-spacing: 0.15em;
+            text-transform: uppercase;
+            box-shadow: 0 15px 30px -10px rgba(0, 0, 0, 0.5);
+            transition: all 0.3s ease;
+            cursor: pointer;
+            text-align: center;
+        }
+
+        .status-button-core:hover {
+            background: #f8fafc;
+            transform: translateY(-2px);
+            box-shadow: 0 20px 40px -12px rgba(0, 0, 0, 0.6);
+        }
+
+        .info-block {
+            background: rgba(255, 255, 255, 0.02);
+            border-radius: 1.5rem;
+            padding: 1.5rem;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            transition: all 0.3s ease;
+        }
+        .info-block:hover { border-color: var(--primary); background: rgba(255, 255, 255, 0.04); }
+
+        .hidden-view { display: none; }
+        
+        .grid-bg {
+            position: fixed;
+            inset: 0;
+            background-image: linear-gradient(rgba(255,255,255,0.01) 1px, transparent 1px), 
+                              linear-gradient(90deg, rgba(255,255,255,0.01) 1px, transparent 1px);
+            background-size: 60px 60px;
+            pointer-events: none;
+            z-index: -1;
+        }
+
+        .closed-btn-state {
+            background: #1e293b !important;
+            color: #ffffff !important;
+            border-color: transparent !important;
+            opacity: 0.7;
+            cursor: not-allowed;
+        }
+    </style>
+</head>
+<body class="p-4 md:p-10 flex flex-col items-center">
+
+    <div class="grid-bg"></div>
+
+    <!-- HEADER -->
+    <header class="w-full max-w-[1600px] flex flex-col md:flex-row justify-between items-center mb-12 glass p-6 rounded-[2.5rem] gap-6">
+        <div class="flex items-center gap-6">
+            <div class="w-14 h-14 bg-slate-800 rounded-2xl flex items-center justify-center shadow-2xl border border-white/10">
+                <i class="fa-solid fa-house-chimney text-2xl text-cyan-400"></i>
+            </div>
+            <div>
+                <h1 class="text-2xl md:text-3xl font-bold tracking-tight uppercase text-white">House Rental Portal</h1>
+                <div class="flex items-center gap-2">
+                    <div id="conn-dot" class="w-2 h-2 rounded-full bg-slate-700"></div>
+                    <span id="conn-status" class="status-tag">Network Standby</span>
+                </div>
+            </div>
+        </div>
+
+        <div id="wallet-module">
+            <button id="connect-btn" class="btn-action px-10 py-3.5 rounded-2xl text-[10px]">Establish Connection</button>
+            <div id="user-pill" class="hidden-view flex items-center gap-4 px-6 py-2.5 glass rounded-2xl border border-white/10">
+                <div class="text-right">
+                    <p class="status-tag">Identity</p>
+                    <p id="user-addr" class="mono text-xs text-cyan-400">0x...0000</p>
+                </div>
+                <div class="w-10 h-10 bg-white/5 rounded-xl flex items-center justify-center text-white border border-white/10">
+                    <i class="fa-solid fa-id-badge"></i>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- MAIN DASHBOARD CONTENT - 3 BALANCED BRIGHT PARTS -->
+    <div class="w-full max-w-[1600px] grid grid-cols-1 lg:grid-cols-3 gap-10 flex-grow items-stretch">
+        
+        <!-- PART 1: NODE ECONOMICS -->
+        <section class="glass dashboard-card gap-8 flex flex-col">
+            <h2 class="status-tag text-cyan-500 flex items-center gap-3">
+                <i class="fa-solid fa-chart-pie"></i> Node Economics
+            </h2>
+            
+            <div class="flex-grow space-y-6">
+                <div class="info-block">
+                    <p class="status-tag mb-1">Cycle Rate</p>
+                    <p id="rent-val" class="text-3xl font-bold mono tracking-tighter text-white">0</p>
+                    <span class="text-[9px] font-black text-slate-500 uppercase tracking-widest">Wei / Cycle</span>
+                </div>
+
+                <div class="info-block">
+                    <p class="status-tag mb-1">Agreement Bond</p>
+                    <p id="deposit-val" class="text-3xl font-bold mono tracking-tighter text-white">0</p>
+                    <span class="text-[9px] font-black text-slate-500 uppercase tracking-widest">Wei Collateral</span>
+                </div>
+
+                <div class="info-block border-emerald-500/20 bg-emerald-500/5">
+                    <p class="status-tag mb-1 text-emerald-500">Vault Assets</p>
+                    <p id="balance-val" class="text-2xl font-bold mono text-emerald-400">0 WEI</p>
+                </div>
+            </div>
+
+            <div class="pt-8 border-t border-white/5">
+                <p class="status-tag mb-3">Protocol Landlord</p>
+                <div class="p-4 bg-black/20 rounded-xl border border-white/5">
+                    <p id="landlord-addr" class="mono text-[10px] text-slate-400 truncate text-center">Fetching...</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- PART 2: ARCHITECTURAL NODE STATUS (CENTER) -->
+        <section class="glass dashboard-card items-center justify-center flex flex-col">
+            <h2 class="status-tag text-cyan-500 mb-10 opacity-60">Visual Monitoring</h2>
+            
+            <div class="house-svg-container">
+                <svg id="house-svg" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+                    <!-- Chimney -->
+                    <rect x="145" y="30" width="18" height="45" fill="var(--house-chimney)" class="shining-border" />
+                    
+                    <!-- Roof (Triangle) -->
+                    <path id="house-roof" d="M15 85 L100 15 L185 85 Z" fill="var(--house-roof)" class="shining-border" stroke-linejoin="round"/>
+                    
+                    <!-- Body (Square) -->
+                    <rect id="house-body" x="30" y="85" width="140" height="105" fill="var(--house-body)" class="shining-border" />
+                    
+                    <!-- Decent Architectural Accents -->
+                    <line x1="35" y1="105" x2="165" y2="105" stroke="rgba(0,0,0,0.05)" stroke-width="0.5"/>
+                    <line x1="35" y1="125" x2="165" y2="125" stroke="rgba(0,0,0,0.05)" stroke-width="0.5"/>
+                    <line x1="35" y1="145" x2="165" y2="145" stroke="rgba(0,0,0,0.05)" stroke-width="0.5"/>
+                    <line x1="35" y1="165" x2="165" y2="165" stroke="rgba(0,0,0,0.05)" stroke-width="0.5"/>
+                    
+                    <!-- Windows -->
+                    <g id="house-windows" stroke="var(--house-window-frame)" stroke-width="1.2">
+                        <rect x="50" y="105" width="30" height="30" fill="rgba(255,255,255,0.4)" rx="2" />
+                        <line x1="50" y1="120" x2="80" y2="120" stroke-width="0.4"/>
+                        <line x1="65" y1="105" x2="65" y2="135" stroke-width="0.4"/>
+                        
+                        <rect x="120" y="105" width="30" height="30" fill="rgba(255,255,255,0.4)" rx="2" />
+                        <line x1="120" y1="120" x2="150" y2="120" stroke-width="0.4"/>
+                        <line x1="135" y1="105" x2="135" y2="135" stroke-width="0.4"/>
+                    </g>
+                    
+                    <!-- Plain Door -->
+                    <rect id="house-door" x="85" y="140" width="30" height="50" fill="var(--house-door)" rx="1" />
+                    <circle cx="111" cy="165" r="1.2" fill="rgba(255,255,255,0.2)" />
+
+                    <!-- Foundation -->
+                    <rect x="20" y="190" width="160" height="10" rx="2" fill="var(--house-foundation)" />
+                </svg>
+            </div>
+
+            <button id="status-button" onclick="handleMainAction()" class="status-button-core">
+                VACANT
+            </button>
+            
+            <div class="mt-8 flex justify-between w-full max-w-[260px] px-2">
+                <span class="status-tag">Total Payload:</span>
+                <span id="total-price" class="mono text-xs font-bold text-white">0 Wei</span>
+            </div>
+        </section>
+
+        <!-- PART 3: PORTAL MANAGEMENT -->
+        <section class="glass dashboard-card gap-8 flex flex-col">
+            <h2 class="status-tag text-cyan-500 flex items-center gap-3">
+                <i class="fa-solid fa-user-shield"></i> Portal Controls
+            </h2>
+
+            <div class="flex-grow space-y-6">
+                <!-- IDENTITY STATUS -->
+                <div class="info-block">
+                    <div class="flex items-center gap-4 mb-4">
+                        <i class="fa-solid fa-fingerprint text-cyan-400"></i>
+                        <h3 class="font-bold text-xs uppercase tracking-widest text-white">Identity Check</h3>
+                    </div>
+                    <div class="space-y-2 text-[11px] mono">
+                        <div class="flex justify-between">
+                            <span class="text-slate-500">Node Status:</span>
+                            <span id="detail-status" class="text-white font-bold">VACANT</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-slate-500">Active Tenant:</span>
+                            <span id="debug-net" class="text-slate-500 italic">None Linked</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- PAY RENT - Bright and Interactive -->
+                <div id="payment-card" class="info-block" onclick="handleRestrictedClick('tenant')">
+                    <div class="flex items-center gap-4 mb-4">
+                        <i class="fa-solid fa-receipt text-emerald-400"></i>
+                        <h3 class="font-bold text-xs uppercase tracking-widest text-success">Tenant Portal</h3>
+                    </div>
+                    <button id="pay-btn" onclick="payRent(); event.stopPropagation();" disabled class="w-full py-4 bg-white/5 text-slate-500 rounded-xl font-bold text-[11px] uppercase tracking-widest transition-all">
+                        Broadcast Rent
+                    </button>
+                    <p id="portal-note" class="text-[9px] mt-3 text-slate-500 leading-relaxed italic text-center">Unlocks for active leaseholders.</p>
+                </div>
+
+                <!-- LEASE TERMINATION - Bright and Interactive -->
+                <div id="cancel-card" class="info-block border-rose-500/10" onclick="handleRestrictedClick('landlord')">
+                    <div class="flex items-center gap-4 mb-4">
+                        <i class="fa-solid fa-handshake-slash text-rose-500"></i>
+                        <h3 class="font-bold text-xs uppercase tracking-widest text-rose-500">Agreement</h3>
+                    </div>
+                    <button id="cancel-btn" onclick="endLease(); event.stopPropagation();" disabled class="w-full py-4 bg-white/5 text-slate-500 rounded-xl font-bold text-[11px] uppercase tracking-widest transition-all">
+                        End Agreement
+                    </button>
+                </div>
+            </div>
+
+            <div class="mt-auto p-4 bg-cyan-500/5 rounded-3xl border border-cyan-500/10 text-center">
+                <p id="system-note" class="text-[9px] text-cyan-400/60 font-black uppercase tracking-widest animate-pulse">
+                    Awaiting Connection...
+                </p>
+            </div>
+        </section>
+    </div>
+
+    <!-- NOTIFICATION SYSTEM -->
+    <div id="toast" class="fixed bottom-10 left-1/2 -translate-x-1/2 z-50 transform translate-y-32 transition-transform duration-500">
+        <div class="glass px-10 py-5 rounded-full border-l-4 border-cyan-500 flex items-center gap-6 shadow-2xl">
+            <div id="toast-icon"></div>
+            <p id="toast-text" class="status-tag text-white text-[11px] font-bold"></p>
+        </div>
+    </div>
+
+    <script>
+        const CONTRACT_ADDRESS = "0xE4DF7316ACDD39cdc75f454162b7Bb6Ad15C05e0";
+        
+        const ABI = [
+            {"inputs":[{"internalType":"uint256","name":"_rentAmount","type":"uint256"},{"internalType":"uint256","name":"_securityDeposit","type":"uint256"}],"stateMutability":"nonpayable","type":"constructor"},
+            {"inputs":[],"name":"endLeaseAndReturnDeposit","outputs":[],"stateMutability":"nonpayable","type":"function"},
+            {"inputs":[],"name":"payRent","outputs":[],"stateMutability":"payable","type":"function"},
+            {"inputs":[],"name":"rentProperty","outputs":[],"stateMutability":"payable","type":"function"},
+            {"inputs":[],"name":"getContractBalance","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
+            {"inputs":[],"name":"landlord","outputs":[{"internalType":"address payable","name":"","type":"address"}],"stateMutability":"view","type":"function"},
+            {"inputs":[],"name":"propertyRented","outputs":[{"internalType":"bool","name":"","type":"bool"}],"stateMutability":"view","type":"function"},
+            {"inputs":[],"name":"rentAmount","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
+            {"inputs":[],"name":"securityDeposit","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
+            {"inputs":[],"name":"tenant","outputs":[{"internalType":"address payable","name":"","type":"address"}],"stateMutability":"view","type":"function"}
+        ];
+
+        let provider, signer, contract, userAddress, isRentedGlobal = false;
+        let landlordGlobal = "";
+        let tenantGlobal = "";
+
+        function showToast(msg, icon = '📡') {
+            const toast = document.getElementById('toast');
+            document.getElementById('toast-text').innerText = msg;
+            document.getElementById('toast-icon').innerHTML = icon;
+            toast.style.transform = 'translateY(0) translateX(-50%)';
+            setTimeout(() => toast.style.transform = 'translateY(150px) translateX(-50%)', 4000);
+        }
+
+        function handleRestrictedClick(role) {
+            if (!userAddress) {
+                showToast("Identity Not Linked", "🔒");
+                return;
+            }
+            const userLow = userAddress.toLowerCase();
+            if (role === 'landlord' && userLow !== landlordGlobal.toLowerCase()) {
+                showToast("Access Denied: Landlord Required", "🚫");
+            } else if (role === 'tenant') {
+                if (!isRentedGlobal) {
+                    showToast("Portal Inactive: Unit Vacant", "⚠️");
+                } else if (userLow !== tenantGlobal.toLowerCase()) {
+                    showToast("Access Denied: Tenant Required", "🚫");
+                }
+            }
+        }
+
+        async function init() {
+            if (window.ethereum) {
+                provider = new ethers.providers.Web3Provider(window.ethereum);
+                window.ethereum.on('accountsChanged', () => location.reload());
+                window.ethereum.on('chainChanged', () => location.reload());
+                const accounts = await provider.listAccounts();
+                if (accounts.length > 0) connect();
+                else document.getElementById('system-note').innerText = "CONNECT WALLET";
+            }
+        }
+
+        async function connect() {
+            try {
+                await provider.send("eth_requestAccounts", []);
+                signer = provider.getSigner();
+                userAddress = await signer.getAddress();
+                contract = new ethers.Contract(CONTRACT_ADDRESS, ABI, signer);
+                document.getElementById('connect-btn').classList.add('hidden-view');
+                document.getElementById('user-pill').classList.remove('hidden-view');
+                document.getElementById('user-addr').innerText = `${userAddress.substring(0,8)}...`;
+                document.getElementById('conn-dot').className = "w-2 h-2 rounded-full bg-white animate-pulse";
+                document.getElementById('conn-status').innerText = "LINK ACTIVE";
+                refreshState();
+            } catch (err) { showToast("Auth Refused", "❌"); }
+        }
+
+        async function refreshState() {
+            if (!contract || !userAddress) return;
+            try {
+                const rent = await contract.rentAmount();
+                const deposit = await contract.securityDeposit();
+                const balance = await contract.getContractBalance();
+                const isRented = await contract.propertyRented();
+                const landlordAddress = await contract.landlord();
+                const tenantAddress = await contract.tenant();
+                
+                isRentedGlobal = isRented;
+                landlordGlobal = landlordAddress;
+                tenantGlobal = tenantAddress || "";
+
+                document.getElementById('rent-val').innerText = rent.toString();
+                document.getElementById('deposit-val').innerText = deposit.toString();
+                document.getElementById('balance-val').innerText = `${balance.toString()} WEI`;
+                document.getElementById('landlord-addr').innerText = landlordAddress;
+                document.getElementById('total-price').innerText = rent.add(deposit).toString();
+
+                const statusButton = document.getElementById('status-button');
+                const detailStatus = document.getElementById('detail-status');
+                const tenantField = document.getElementById('debug-net');
+                const houseSvg = document.getElementById('house-svg');
+
+                const userAddrLower = userAddress.toLowerCase();
+                const landlordAddrLower = landlordAddress.toLowerCase();
+                const tenantAddrLower = tenantAddress ? tenantAddress.toLowerCase() : "";
+
+                const userIsLandlord = userAddrLower === landlordAddrLower;
+                const userIsTenant = isRented && tenantAddrLower !== "" && userAddrLower === tenantAddrLower;
+
+                if (isRented) {
+                    statusButton.innerText = "CLOSED";
+                    statusButton.classList.add('closed-btn-state');
+                    detailStatus.innerText = "CLOSED";
+                    detailStatus.className = "text-rose-500 font-bold";
+                    houseSvg.style.filter = "grayscale(0.6) opacity(0.5)";
+                    tenantField.innerText = tenantAddress ? `${tenantAddress.substring(0,10)}...` : "Active";
+                    tenantField.className = "text-cyan-400 font-bold";
+                } else {
+                    statusButton.innerText = "VACANT";
+                    statusButton.classList.remove('closed-btn-state');
+                    detailStatus.innerText = "VACANT";
+                    detailStatus.className = "text-white font-bold";
+                    houseSvg.style.filter = "none";
+                    tenantField.innerText = "None Linked";
+                }
+
+                const payBtn = document.getElementById('pay-btn');
+                const cancelBtn = document.getElementById('cancel-btn');
+                const note = document.getElementById('system-note');
+                const portalNote = document.getElementById('portal-note');
+
+                if (userIsLandlord) {
+                    note.innerText = "ADMINISTRATOR LOGGED IN";
+                    cancelBtn.disabled = !isRented;
+                    cancelBtn.className = isRented ? "w-full py-4 bg-rose-600 text-white rounded-xl font-bold text-[11px] uppercase shadow-xl" : "w-full py-4 bg-white/5 text-slate-500 rounded-xl font-bold text-[11px] uppercase";
+                    payBtn.disabled = true;
+                } 
+                else if (userIsTenant) {
+                    note.innerText = "ACTIVE TENANT AUTHORIZED";
+                    payBtn.disabled = false;
+                    payBtn.className = "w-full py-4 bg-emerald-600 text-white rounded-xl font-bold text-[11px] uppercase shadow-xl shadow-emerald-500/20";
+                    portalNote.innerText = "Cycle broadcast enabled.";
+                    portalNote.className = "text-[9px] mt-3 text-emerald-400 leading-relaxed italic text-center";
+                    cancelBtn.disabled = true;
+                } 
+                else {
+                    note.innerText = isRented ? "ACCESS RESTRICTED" : "AUTHORIZED GUEST VIEW";
+                    payBtn.disabled = true;
+                    cancelBtn.disabled = true;
+                }
+            } catch (e) { console.error("Sync error:", e); }
+        }
+
+        function handleMainAction() {
+            if (!userAddress) return connect();
+            if (isRentedGlobal) showToast("Node is Occupied", "🚫");
+            else rentProperty();
+        }
+
+        async function rentProperty() {
+            try {
+                const total = (await contract.rentAmount()).add(await contract.securityDeposit());
+                showToast("Transmitting Protocol...");
+                const tx = await contract.rentProperty({ value: total });
+                await tx.wait();
+                showToast("Agreement Finalized", "🏠");
+                refreshState();
+            } catch (err) { showToast("Action Rejected", "❌"); }
+        }
+
+        async function payRent() {
+            try {
+                const rent = await contract.rentAmount();
+                showToast("Pushing Wei Cycle...");
+                const tx = await contract.payRent({ value: rent });
+                await tx.wait();
+                showToast("Verified", "✅");
+                refreshState();
+            } catch (err) { showToast("Broadcast Failed", "❌"); }
+        }
+
+        async function endLease() {
+            try {
+                showToast("Initiating Node Reset...");
+                const tx = await contract.endLeaseAndReturnDeposit();
+                await tx.wait();
+                showToast("Protocol Reset", "✅");
+                refreshState();
+            } catch (err) { showToast("Action Canceled", "❌"); }
+        }
+
+        document.getElementById('connect-btn').addEventListener('click', connect);
+        window.addEventListener('load', init);
+    </script>
+</body>
+</html>
